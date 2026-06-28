@@ -9,9 +9,10 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+const stages = ["novo", "contato", "quente", "proposta", "fechado"];
+
 export default function Dashboard() {
   const router = useRouter();
-
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,81 +30,91 @@ export default function Dashboard() {
   async function loadLeads() {
     setLoading(true);
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("leads")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error) {
-      setLeads(data || []);
-    }
-
+    setLeads(data || []);
     setLoading(false);
   }
 
-  const total = leads.length;
-  const novos = leads.filter((l) => l.status === "novo").length;
-  const quentes = leads.filter((l) => l.status === "quente").length;
-  const fechados = leads.filter((l) => l.status === "fechado").length;
+  async function updateStatus(id: string, status: string) {
+    await supabase
+      .from("leads")
+      .update({ status })
+      .eq("id", id);
+
+    loadLeads();
+  }
 
   return (
-    <div style={{ padding: 30, fontFamily: "Arial" }}>
-      <h1 style={{ fontSize: 28, fontWeight: "bold" }}>
-        📊 CRM Dashboard
-      </h1>
+    <div style={{ padding: 20, fontFamily: "Arial" }}>
+      <h1>📊 Funil de Vendas CRM</h1>
 
-      {/* KPIs */}
-      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
-        <Card title="Total Leads" value={total} />
-        <Card title="Novos" value={novos} />
-        <Card title="Quentes" value={quentes} />
-        <Card title="Fechados" value={fechados} />
-      </div>
+      {loading && <p>Carregando...</p>}
 
-      {/* Leads list */}
-      <div style={{ marginTop: 40 }}>
-        <h2>📋 Últimos Leads</h2>
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          overflowX: "auto",
+          marginTop: 20,
+        }}
+      >
+        {stages.map((stage) => (
+          <div
+            key={stage}
+            style={{
+              minWidth: 250,
+              background: "#f4f4f4",
+              padding: 10,
+              borderRadius: 10,
+            }}
+          >
+            <h3 style={{ textTransform: "capitalize" }}>
+              {stage}
+            </h3>
 
-        {loading ? (
-          <p>Carregando...</p>
-        ) : (
-          <div style={{ marginTop: 10 }}>
-            {leads.map((lead) => (
-              <div
-                key={lead.id}
-                style={{
-                  padding: 15,
-                  border: "1px solid #ddd",
-                  borderRadius: 10,
-                  marginBottom: 10,
-                }}
-              >
-                <strong>{lead.nome || "Sem nome"}</strong>
-                <p>📞 {lead.telefone}</p>
-                <p>📍 Status: {lead.status}</p>
-                <p>🏠 Interesse: {lead.interesse}</p>
-              </div>
-            ))}
+            {leads
+              .filter((l) => l.status === stage)
+              .map((lead) => (
+                <div
+                  key={lead.id}
+                  style={{
+                    background: "#fff",
+                    padding: 10,
+                    marginBottom: 10,
+                    borderRadius: 8,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <strong>{lead.nome || "Sem nome"}</strong>
+                  <p style={{ fontSize: 12 }}>{lead.telefone}</p>
+                  <p style={{ fontSize: 12 }}>
+                    🏠 {lead.interesse || "Sem interesse"}
+                  </p>
+
+                  <div style={{ display: "flex", gap: 5 }}>
+                    {stages.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => updateStatus(lead.id, s)}
+                        style={{
+                          fontSize: 10,
+                          padding: 4,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
           </div>
-        )}
+        ))}
       </div>
-    </div>
-  );
-}
-
-function Card({ title, value }: any) {
-  return (
-    <div
-      style={{
-        flex: 1,
-        padding: 20,
-        borderRadius: 12,
-        background: "#111",
-        color: "#fff",
-      }}
-    >
-      <h3 style={{ margin: 0 }}>{title}</h3>
-      <p style={{ fontSize: 24, marginTop: 10 }}>{value}</p>
     </div>
   );
 }
