@@ -10,5 +10,5 @@ export default function Home() {
     router.replace("/dashboard");
   }, [router]);
 
-  return <p>Carregando...</p>;
+  return null;
 }
