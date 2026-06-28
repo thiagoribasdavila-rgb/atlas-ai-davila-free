@@ -6,12 +6,12 @@ export function middleware(req: NextRequest) {
 
   const isLoginPage = req.nextUrl.pathname.startsWith("/login");
 
-  // sem token → só deixa ver login
+  // sem token → só deixa login
   if (!token && !isLoginPage) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // com token → não deixa voltar pro login
+  // com token → bloqueia login
   if (token && isLoginPage) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
