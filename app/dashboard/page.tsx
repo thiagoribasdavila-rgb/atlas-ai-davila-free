@@ -1,9 +1,8 @@
 export default function Dashboard() {
   return (
-    <div style={{ padding: 30 }}>
-      <h1>📊 Dashboard CRM Atlas</h1>
-
-      <p>Projeto rodando corretamente</p>
-    </div>
+    <main style={{ padding: 40 }}>
+      <h1>📈 Dashboard Atlas CRM</h1>
+      <p>Sistema carregando corretamente</p>
+    </main>
   );
 }
