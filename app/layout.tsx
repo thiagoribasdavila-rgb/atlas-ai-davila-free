@@ -1,13 +1,15 @@
-export default function RootLayout({
+export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
-      <body style={{ margin: 0, fontFamily: "Arial" }}>
+    <div style={{ display: "flex" }}>
+      <aside style={{ width: 250 }}>Sidebar</aside>
+
+      <main style={{ flex: 1 }}>
         {children}
-      </body>
-    </html>
+      </main>
+    </div>
   );
 }
