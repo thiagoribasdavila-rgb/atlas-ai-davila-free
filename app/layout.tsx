@@ -1,15 +1,13 @@
-export default function AppLayout({
+import "./globals.css";
+
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex" }}>
-      <aside style={{ width: 250 }}>Sidebar</aside>
-
-      <main style={{ flex: 1 }}>
-        {children}
-      </main>
-    </div>
+    <html lang="pt-br">
+      <body>{children}</body>
+    </html>
   );
 }
