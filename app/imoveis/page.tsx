@@ -13,7 +13,7 @@ export default function ImoveisPage() {
   const [type, setType] = useState("Todos");
   const [maxPrice, setMaxPrice] = useState(5000000);
 
-  // 🔐 proteção login
+  // 🔐 login
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
 
@@ -27,34 +27,46 @@ export default function ImoveisPage() {
 
   if (!user) return null;
 
-  // 🔍 filtro inteligente
+  // 🔍 filtro
   const filtered = properties.filter((p) => {
-    const matchSearch =
-      p.title.toLowerCase().includes(search.toLowerCase()) ||
-      p.location.toLowerCase().includes(search.toLowerCase());
-
-    const matchType =
-      type === "Todos" || p.type === type;
-
-    const matchPrice = p.price <= maxPrice;
-
-    return matchSearch && matchType && matchPrice;
+    return (
+      (type === "Todos" || p.type === type) &&
+      p.price <= maxPrice &&
+      (p.title.toLowerCase().includes(search.toLowerCase()) ||
+        p.location.toLowerCase().includes(search.toLowerCase()))
+    );
   });
 
-  function goTo(id: string) {
-    router.push(routes.imovel(id));
-
-    // 📊 registra lead simples (base CRM futuro)
+  // 📊 salvar lead
+  function saveLead(propertyId: string) {
     const leads = JSON.parse(localStorage.getItem("leads") || "[]");
 
     leads.push({
       id: crypto.randomUUID(),
       email: user,
-      propertyId: id,
+      propertyId,
       date: new Date().toISOString(),
     });
 
     localStorage.setItem("leads", JSON.stringify(leads));
+  }
+
+  // 📲 WHATSAPP AUTOMÁTICO
+  function openWhatsApp(property: any) {
+    saveLead(property.id);
+
+    const message = `Olá! Tenho interesse no imóvel: ${property.title} - ${property.location}`;
+
+    const phone = "5511999999999"; // 🔥 trocar para seu número
+
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+    window.open(url, "_blank");
+  }
+
+  // 🧭 ver imóvel
+  function goTo(id: string) {
+    router.push(routes.imovel(id));
   }
 
   return (
@@ -62,21 +74,17 @@ export default function ImoveisPage() {
       {/* HEADER */}
       <h1>Imóveis disponíveis</h1>
 
-      <p style={{ color: "#666" }}>
-        Logado como: {user}
-      </p>
+      <p style={{ color: "#666" }}>Logado como: {user}</p>
 
       {/* FILTROS */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-        {/* busca */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <input
-          placeholder="Buscar imóvel..."
+          placeholder="Buscar..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           style={input}
         />
 
-        {/* tipo */}
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
@@ -88,7 +96,6 @@ export default function ImoveisPage() {
           <option value="Studio">Studio</option>
         </select>
 
-        {/* preço */}
         <input
           type="range"
           min={300000}
@@ -106,23 +113,27 @@ export default function ImoveisPage() {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
           gap: 15,
+          marginTop: 20,
         }}
       >
         {filtered.map((p) => (
-          <div
-            key={p.id}
-            onClick={() => goTo(p.id)}
-            style={card}
-          >
-            <h3>{p.title}</h3>
+          <div key={p.id} style={card}>
+            <h3 onClick={() => goTo(p.id)}>{p.title}</h3>
 
-            <p style={{ color: "#666" }}>{p.location}</p>
-
+            <p>{p.location}</p>
             <p style={{ fontSize: 12 }}>{p.type}</p>
 
             <strong>
               R$ {p.price.toLocaleString("pt-BR")}
             </strong>
+
+            {/* 💥 BOTÃO WHATSAPP */}
+            <button
+              onClick={() => openWhatsApp(p)}
+              style={whatsappBtn}
+            >
+              Falar no WhatsApp
+            </button>
           </div>
         ))}
       </div>
@@ -141,5 +152,14 @@ const card = {
   padding: 15,
   border: "1px solid #e5e5e5",
   borderRadius: 10,
+};
+
+const whatsappBtn = {
+  marginTop: 10,
+  padding: "8px 10px",
+  background: "#25D366",
+  color: "#fff",
+  border: "none",
+  borderRadius: 6,
   cursor: "pointer",
 };
