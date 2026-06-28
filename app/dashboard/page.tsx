@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLeads, updateLeadStatus, Lead } from "@/lib/leads";
-import { nextStatus } from "@/lib/pipeline";
+import { getLeads, Lead, updateLeadStatus } from "@/lib/leads";
+import { pipelineOrder } from "@/lib/pipeline";
 
 export default function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -11,35 +11,56 @@ export default function Dashboard() {
     setLeads(getLeads());
   }, []);
 
-  function moveLead(id: string, current: any) {
-    updateLeadStatus(id, nextStatus(current));
+  function move(id: string, status: any) {
+    const nextIndex =
+      pipelineOrder.indexOf(status) + 1;
+
+    const nextStatus =
+      pipelineOrder[nextIndex] || status;
+
+    updateLeadStatus(id, nextStatus);
     setLeads(getLeads());
+  }
+
+  function getByStatus(status: string) {
+    return leads.filter((l) => l.status === status);
   }
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>CRM Dashboard</h1>
+      <h1>CRM Imobiliário</h1>
 
-      <div style={{ display: "grid", gap: 10 }}>
-        {leads.map((lead) => (
+      <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
+        {pipelineOrder.map((status) => (
           <div
-            key={lead.id}
+            key={status}
             style={{
+              minWidth: 220,
               border: "1px solid #ddd",
+              borderRadius: 10,
               padding: 10,
-              borderRadius: 8,
             }}
           >
-            <h3>{lead.name}</h3>
-            <p>{lead.phone}</p>
-            <p>Interesse: {lead.interest}</p>
-            <strong>Status: {lead.status}</strong>
+            <h3>{status.toUpperCase()}</h3>
 
-            <br />
+            {getByStatus(status).map((lead) => (
+              <div
+                key={lead.id}
+                style={{
+                  padding: 10,
+                  marginBottom: 10,
+                  border: "1px solid #eee",
+                  borderRadius: 8,
+                }}
+              >
+                <strong>{lead.name}</strong>
+                <p>{lead.phone}</p>
 
-            <button onClick={() => moveLead(lead.id, lead.status)}>
-              Avançar etapa →
-            </button>
+                <button onClick={() => move(lead.id, lead.status)}>
+                  Avançar →
+                </button>
+              </div>
+            ))}
           </div>
         ))}
       </div>
