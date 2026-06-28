@@ -4,7 +4,7 @@ export default function Pipeline() {
       <h1>Pipeline de Vendas</h1>
 
       <div className="kanban">
-        <div className="column">Lead Novo</div>
+        <div className="column">Novo Lead</div>
         <div className="column">Contato</div>
         <div className="column">Proposta</div>
         <div className="column">Fechado</div>
@@ -12,4 +12,3 @@ export default function Pipeline() {
     </div>
   );
 }
-
