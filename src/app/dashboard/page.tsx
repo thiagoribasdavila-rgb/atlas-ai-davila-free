@@ -1,51 +1,66 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getLeads } from '@/services/leadsService'
+import { getLeads, updateLead, Lead } from '@/services/leadsService'
+
+const STATUS = ['novo', 'contato', 'proposta', 'fechado']
 
 export default function Dashboard() {
-  const [leads, setLeads] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [leads, setLeads] = useState<Lead[]>([])
 
   useEffect(() => {
-    async function load() {
-      const data = await getLeads()
-      setLeads(data)
-      setLoading(false)
-    }
-
     load()
   }, [])
 
+  async function load() {
+    const data = await getLeads()
+    setLeads(data || [])
+  }
+
+  async function moveLead(id: string, status: string) {
+    await updateLead(id, { status })
+    load()
+  }
+
   return (
-    <main style={{ padding: 20 }}>
-      <h1>CRM D’Avila</h1>
+    <div style={{ padding: 20 }}>
+      <h1>CRM D'Avila</h1>
 
-      {loading ? (
-        <p>Carregando leads...</p>
-      ) : (
-        <table border={1} cellPadding={10}>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Telefone</th>
-              <th>Email</th>
-              <th>Status</th>
-            </tr>
-          </thead>
+      <div style={{ display: 'flex', gap: 20 }}>
+        {STATUS.map((status) => (
+          <div key={status} style={{ flex: 1 }}>
+            <h3>{status.toUpperCase()}</h3>
 
-          <tbody>
-            {leads.map((lead) => (
-              <tr key={lead.id}>
-                <td>{lead.nome}</td>
-                <td>{lead.telefone}</td>
-                <td>{lead.email}</td>
-                <td>{lead.status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </main>
+            {leads
+              .filter((l) => l.status === status)
+              .map((lead) => (
+                <div
+                  key={lead.id}
+                  style={{
+                    padding: 10,
+                    marginBottom: 10,
+                    border: '1px solid #ccc',
+                    borderRadius: 8
+                  }}
+                >
+                  <strong>{lead.nome}</strong>
+                  <p>{lead.telefone}</p>
+
+                  <select
+                    value={lead.status}
+                    onChange={(e) =>
+                      moveLead(lead.id!, e.target.value)
+                    }
+                  >
+                    {STATUS.map((s) => (
+                      <option key={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
