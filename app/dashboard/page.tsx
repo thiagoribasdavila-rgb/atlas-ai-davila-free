@@ -1,22 +1,28 @@
 "use client";
 
-import { useEffect } from "react";
-import { getUser } from "@/lib/auth";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getLeads, Lead } from "@/lib/leads";
 
 export default function Dashboard() {
-  const router = useRouter();
+  const [leads, setLeads] = useState<Lead[]>([]);
 
   useEffect(() => {
-    const user = getUser();
-    if (!user) router.push("/login");
+    setLeads(getLeads());
   }, []);
+
+  const total = leads.length;
+  const novos = leads.filter((l) => l.status === "novo").length;
+  const fechados = leads.filter((l) => l.status === "fechado").length;
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>Dashboard CRM PRO</h1>
+      <h1>CRM PRO Dashboard</h1>
 
-      <p>Bem-vindo ao sistema imobiliário</p>
+      <div style={{ display: "flex", gap: 20 }}>
+        <div>Total Leads: {total}</div>
+        <div>Novos: {novos}</div>
+        <div>Fechados: {fechados}</div>
+      </div>
     </div>
   );
 }
