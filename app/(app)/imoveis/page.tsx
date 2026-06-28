@@ -4,9 +4,9 @@ export default function ImoveisPage() {
       <h1>Imóveis</h1>
 
       <div className="grid">
-        <div className="card">Apartamento Perdizes</div>
-        <div className="card">Studio Av. Paulista</div>
-        <div className="card">Cobertura Jardins</div>
+        <div className="card">Perdizes - 2 dorm</div>
+        <div className="card">Av. Paulista - Studio</div>
+        <div className="card">Jardins - Luxo</div>
       </div>
     </div>
   );
