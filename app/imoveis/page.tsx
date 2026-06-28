@@ -1,37 +1,37 @@
 "use client";
 
 import { properties } from "@/lib/properties";
-import Link from "next/link";
-import { navigateOnce } from "@/lib/navigation";
 import { useRouter } from "next/navigation";
+import { canNavigate } from "@/lib/navigation";
+import { routes } from "@/lib/appRoutes";
 
 export default function ImoveisPage() {
   const router = useRouter();
 
-  function handleClick(id: string) {
-    const route = `/imoveis/${id}`;
+  function goTo(id: string) {
+    const route = routes.imovel(id);
 
-    if (!navigateOnce(route)) return;
+    if (!canNavigate(route)) return;
 
     router.push(route);
   }
 
   return (
-    <div>
-      <h1>Imóveis disponíveis</h1>
+    <div style={{ padding: 20 }}>
+      <h1>Imóveis</h1>
 
       {properties.map((p) => (
         <div
           key={p.id}
-          onClick={() => handleClick(p.id)}
+          onClick={() => goTo(p.id)}
           style={{
-            padding: 10,
-            border: "1px solid #ccc",
-            margin: 10,
+            padding: 15,
+            border: "1px solid #ddd",
+            marginBottom: 10,
             cursor: "pointer",
           }}
         >
-          <h2>{p.title}</h2>
+          <h3>{p.title}</h3>
           <p>{p.location}</p>
           <strong>R$ {p.price}</strong>
         </div>
