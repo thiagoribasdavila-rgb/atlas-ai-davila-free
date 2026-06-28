@@ -4,15 +4,15 @@ import type { NextRequest } from "next/server";
 export function middleware(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
 
-  const isLogin = req.nextUrl.pathname.startsWith("/login");
+  const isLoginPage = req.nextUrl.pathname.startsWith("/login");
 
-  // sem login → bloqueia tudo menos login
-  if (!token && !isLogin) {
+  // sem token → só deixa ver login
+  if (!token && !isLoginPage) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // logado → impede voltar login
-  if (token && isLogin) {
+  // com token → não deixa voltar pro login
+  if (token && isLoginPage) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
@@ -20,5 +20,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
