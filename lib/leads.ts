@@ -12,7 +12,9 @@ export type Lead = {
   phone: string;
   email?: string;
   interest: string;
+  propertyId?: string;
   status: LeadStatus;
+  ownerId: string;
   createdAt: string;
 };
 
@@ -28,9 +30,9 @@ export function saveLead(lead: Lead) {
   localStorage.setItem(KEY, JSON.stringify([...leads, lead]));
 }
 
-export function updateLeadStatus(id: string, status: LeadStatus) {
+export function updateLead(id: string, data: Partial<Lead>) {
   const leads = getLeads().map((l) =>
-    l.id === id ? { ...l, status } : l
+    l.id === id ? { ...l, ...data } : l
   );
 
   localStorage.setItem(KEY, JSON.stringify(leads));
