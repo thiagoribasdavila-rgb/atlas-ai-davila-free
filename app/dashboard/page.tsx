@@ -12,10 +12,11 @@ type Lead = {
 
 export default function Dashboard() {
   const router = useRouter();
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [user, setUser] = useState<string | null>(null);
 
-  // 🔐 proteção de acesso
+  const [user, setUser] = useState<string | null>(null);
+  const [leads, setLeads] = useState<Lead[]>([]);
+
+  // 🔐 proteção login
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
 
@@ -29,26 +30,22 @@ export default function Dashboard() {
     loadLeads();
   }, []);
 
-  // 📊 carregar leads (simulado localStorage)
   function loadLeads() {
     const data = localStorage.getItem("leads");
-
-    if (data) {
-      setLeads(JSON.parse(data));
-    }
+    if (data) setLeads(JSON.parse(data));
   }
 
-  // 🚪 logout
   function logout() {
     localStorage.removeItem("user");
     router.push("/login");
   }
 
-  // 🧠 limpar leads
-  function clearLeads() {
-    localStorage.removeItem("leads");
-    setLeads([]);
-  }
+  // 🧠 agrupamento por imóvel
+  const grouped = leads.reduce((acc: any, lead) => {
+    acc[lead.propertyId] = acc[lead.propertyId] || [];
+    acc[lead.propertyId].push(lead);
+    return acc;
+  }, {});
 
   if (!user) return null;
 
@@ -60,45 +57,27 @@ export default function Dashboard() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 20,
         }}
       >
         <div>
-          <h1>Dashboard de Leads</h1>
+          <h1>CRM Imobiliário</h1>
           <p style={{ color: "#666" }}>
             Usuário: {user}
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <button
-            onClick={() => router.push("/imoveis")}
-            style={{
-              padding: "8px 12px",
-              background: "#333",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              cursor: "pointer",
-            }}
-          >
-            Imóveis
-          </button>
-
-          <button
-            onClick={logout}
-            style={{
-              padding: "8px 12px",
-              background: "#000",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              cursor: "pointer",
-            }}
-          >
-            Sair
-          </button>
-        </div>
+        <button
+          onClick={logout}
+          style={{
+            padding: "8px 12px",
+            background: "black",
+            color: "#fff",
+            borderRadius: 6,
+            border: "none",
+          }}
+        >
+          Sair
+        </button>
       </div>
 
       {/* STATS */}
@@ -107,74 +86,82 @@ export default function Dashboard() {
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",
           gap: 10,
-          marginBottom: 20,
+          marginTop: 20,
         }}
       >
         <div style={box}>
           <h3>Total de Leads</h3>
-          <p style={{ fontSize: 22 }}>{leads.length}</p>
+          <p>{leads.length}</p>
         </div>
 
         <div style={box}>
-          <h3>Imóveis Ativos</h3>
-          <p style={{ fontSize: 22 }}>
-            {new Set(leads.map((l) => l.propertyId)).size}
-          </p>
+          <h3>Imóveis ativos</h3>
+          <p>{Object.keys(grouped).length}</p>
         </div>
 
         <div style={box}>
-          <h3>Último Lead</h3>
-          <p style={{ fontSize: 14 }}>
-            {leads[0]?.date || "Nenhum"}
-          </p>
+          <h3>Conversão</h3>
+          <p>{leads.length > 0 ? "Alta" : "Sem dados"}</p>
         </div>
       </div>
 
-      {/* LEADS LIST */}
-      <div>
-        <h2>Leads recentes</h2>
+      {/* LEADS POR IMÓVEL */}
+      <div style={{ marginTop: 30 }}>
+        <h2>Leads por imóvel</h2>
 
-        <button
-          onClick={clearLeads}
-          style={{
-            marginBottom: 10,
-            padding: "6px 10px",
-            background: "red",
-            color: "#fff",
-            border: "none",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          Limpar leads
-        </button>
-
-        {leads.length === 0 ? (
-          <p>Nenhum lead registrado</p>
-        ) : (
-          leads.map((lead) => (
-            <div key={lead.id} style={leadBox}>
-              <p><strong>Email:</strong> {lead.email}</p>
-              <p><strong>Imóvel:</strong> {lead.propertyId}</p>
-              <p><strong>Data:</strong> {lead.date}</p>
-            </div>
-          ))
+        {Object.keys(grouped).length === 0 && (
+          <p>Nenhum lead registrado ainda</p>
         )}
+
+        {Object.entries(grouped).map(([propertyId, items]: any) => (
+          <div key={propertyId} style={card}>
+            <h3>Imóvel ID: {propertyId}</h3>
+
+            <p style={{ fontSize: 12, color: "#666" }}>
+              Total de leads: {items.length}
+            </p>
+
+            {/* classificação simples */}
+            <p>
+              Status:{" "}
+              <strong>
+                {items.length > 5
+                  ? "🔥 Quente"
+                  : items.length > 2
+                  ? "⚡ Médio"
+                  : "❄ Frio"}
+              </strong>
+            </p>
+
+            <button
+              onClick={() => router.push(`/imoveis/${propertyId}`)}
+              style={{
+                marginTop: 10,
+                padding: "6px 10px",
+                borderRadius: 6,
+                border: "1px solid #ddd",
+                background: "#fff",
+              }}
+            >
+              Ver imóvel
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-// 🎨 estilos simples
+// 🎨 estilos
 const box = {
   padding: 15,
   border: "1px solid #ddd",
   borderRadius: 10,
 };
 
-const leadBox = {
-  padding: 10,
-  border: "1px solid #eee",
-  marginBottom: 10,
-  borderRadius: 8,
+const card = {
+  marginTop: 15,
+  padding: 15,
+  border: "1px solid #e5e5e5",
+  borderRadius: 10,
 };
