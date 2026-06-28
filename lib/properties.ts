@@ -1,14 +1,19 @@
-export const properties = [
-  {
-    id: "1",
-    title: "Apartamento Moderno",
-    price: 550000,
-    location: "São Paulo",
-  },
-  {
-    id: "2",
-    title: "Cobertura Luxo",
-    price: 1200000,
-    location: "Pinheiros",
-  },
-];
+export type Property = {
+  id: string;
+  title: string;
+  price: number;
+  location: string;
+  ownerId: string;
+};
+
+const KEY = "crm_properties";
+
+export function getProperties(): Property[] {
+  if (typeof window === "undefined") return [];
+  return JSON.parse(localStorage.getItem(KEY) || "[]");
+}
+
+export function saveProperty(p: Property) {
+  const items = getProperties();
+  localStorage.setItem(KEY, JSON.stringify([...items, p]));
+}
