@@ -1,12 +1,20 @@
-let lastRoute = "";
+// lib/navigation.ts
 
-export function canNavigate(route: string) {
-  if (typeof window === "undefined") return true;
+import { AppRouterInstance } from "next/navigation";
 
-  const current = window.location.pathname;
+let lastRoute: string | null = null;
+let navigating = false;
 
-  if (current === route || lastRoute === route) return false;
+export function navigateOnce(router: AppRouterInstance, path: string) {
+  if (navigating) return;
+  if (lastRoute === path) return;
 
-  lastRoute = route;
-  return true;
+  navigating = true;
+  lastRoute = path;
+
+  router.push(path);
+
+  setTimeout(() => {
+    navigating = false;
+  }, 300);
 }
