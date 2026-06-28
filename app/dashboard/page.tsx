@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
+import {
+  DragDropContext,
+  Droppable,
+  Draggable,
+} from "@hello-pangea/dnd";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,107 +19,106 @@ const stages = ["novo", "contato", "quente", "proposta", "fechado"];
 export default function Dashboard() {
   const router = useRouter();
   const [leads, setLeads] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const user = localStorage.getItem("user");
-
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
+    if (!user) router.push("/login");
     loadLeads();
   }, []);
 
   async function loadLeads() {
-    setLoading(true);
-
     const { data } = await supabase
       .from("leads")
       .select("*")
       .order("created_at", { ascending: false });
 
     setLeads(data || []);
-    setLoading(false);
   }
 
-  async function updateStatus(id: string, status: string) {
-    await supabase
-      .from("leads")
-      .update({ status })
-      .eq("id", id);
+  async function updateLeadStatus(id: string, status: string) {
+    await supabase.from("leads").update({ status }).eq("id", id);
+  }
 
-    loadLeads();
+  function onDragEnd(result: any) {
+    if (!result.destination) return;
+
+    const leadId = result.draggableId;
+    const newStatus = result.destination.droppableId;
+
+    setLeads((prev) =>
+      prev.map((lead) =>
+        lead.id === leadId ? { ...lead, status: newStatus } : lead
+      )
+    );
+
+    updateLeadStatus(leadId, newStatus);
   }
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial" }}>
-      <h1>📊 Funil de Vendas CRM</h1>
+      <h1>📊 CRM FUNIL DRAG & DROP</h1>
 
-      {loading && <p>Carregando...</p>}
-
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          overflowX: "auto",
-          marginTop: 20,
-        }}
-      >
-        {stages.map((stage) => (
-          <div
-            key={stage}
-            style={{
-              minWidth: 250,
-              background: "#f4f4f4",
-              padding: 10,
-              borderRadius: 10,
-            }}
-          >
-            <h3 style={{ textTransform: "capitalize" }}>
-              {stage}
-            </h3>
-
-            {leads
-              .filter((l) => l.status === stage)
-              .map((lead) => (
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div style={{ display: "flex", gap: 10, overflowX: "auto" }}>
+          {stages.map((stage) => (
+            <Droppable droppableId={stage} key={stage}>
+              {(provided) => (
                 <div
-                  key={lead.id}
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
                   style={{
-                    background: "#fff",
+                    minWidth: 250,
+                    background: "#f4f4f4",
                     padding: 10,
-                    marginBottom: 10,
-                    borderRadius: 8,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    borderRadius: 10,
                   }}
                 >
-                  <strong>{lead.nome || "Sem nome"}</strong>
-                  <p style={{ fontSize: 12 }}>{lead.telefone}</p>
-                  <p style={{ fontSize: 12 }}>
-                    🏠 {lead.interesse || "Sem interesse"}
-                  </p>
+                  <h3 style={{ textTransform: "capitalize" }}>
+                    {stage}
+                  </h3>
 
-                  <div style={{ display: "flex", gap: 5 }}>
-                    {stages.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => updateStatus(lead.id, s)}
-                        style={{
-                          fontSize: 10,
-                          padding: 4,
-                          cursor: "pointer",
-                        }}
+                  {leads
+                    .filter((l) => l.status === stage)
+                    .map((lead, index) => (
+                      <Draggable
+                        key={lead.id}
+                        draggableId={lead.id}
+                        index={index}
                       >
-                        {s}
-                      </button>
+                        {(provided) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            style={{
+                              background: "#fff",
+                              padding: 10,
+                              marginBottom: 10,
+                              borderRadius: 8,
+                              boxShadow:
+                                "0 1px 3px rgba(0,0,0,0.1)",
+                              ...provided.draggableProps.style,
+                            }}
+                          >
+                            <strong>{lead.nome}</strong>
+                            <p style={{ fontSize: 12 }}>
+                              📞 {lead.telefone}
+                            </p>
+                            <p style={{ fontSize: 12 }}>
+                              🏠 {lead.interesse}
+                            </p>
+                          </div>
+                        )}
+                      </Draggable>
                     ))}
-                  </div>
+
+                  {provided.placeholder}
                 </div>
-              ))}
-          </div>
-        ))}
-      </div>
+              )}
+            </Droppable>
+          ))}
+        </div>
+      </DragDropContext>
     </div>
   );
 }
