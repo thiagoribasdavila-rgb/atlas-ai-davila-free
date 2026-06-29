@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
+  const [origem, setOrigem] = useState("site");
 
   const [leads, setLeads] = useState<any[]>([]);
 
@@ -26,19 +27,15 @@ export default function Dashboard() {
     checkUser();
   }, []);
 
-  // 📥 carregar leads
+  // 📥 buscar leads
   useEffect(() => {
+    const fetchLeads = async () => {
+      const { data } = await supabase.from("leads").select("*");
+      setLeads(data || []);
+    };
+
     fetchLeads();
   }, []);
-
-  async function fetchLeads() {
-    const { data, error } = await supabase
-      .from("leads")
-      .select("*")
-      .order("id", { ascending: false });
-
-    if (!error) setLeads(data || []);
-  }
 
   // ➕ criar lead
   async function handleCreateLead() {
@@ -47,74 +44,55 @@ export default function Dashboard() {
         nome,
         telefone,
         email,
-        origem: "dashboard",
+        origem,
         status: "novo",
       },
     ]);
 
-    if (error) {
-      console.log(error);
-      alert("Erro ao salvar lead");
-      return;
+    if (!error) {
+      alert("Lead criado!");
     }
-
-    setNome("");
-    setTelefone("");
-    setEmail("");
-
-    fetchLeads();
   }
 
   return (
-    <div style={{ padding: 30 }}>
+    <div style={{ padding: 20 }}>
       <h1>CRM D'Avila</h1>
-      <p>Sistema online funcionando ✔</p>
 
-      {/* FORMULÁRIO */}
-      <div style={{ marginTop: 20 }}>
-        <input
-          placeholder="Nome"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-        />
+      <input
+        placeholder="Nome"
+        value={nome}
+        onChange={(e) => setNome(e.target.value)}
+      />
 
-        <input
-          placeholder="Telefone"
-          value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
-        />
+      <input
+        placeholder="Telefone"
+        value={telefone}
+        onChange={(e) => setTelefone(e.target.value)}
+      />
 
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+      <input
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
 
-        <button onClick={handleCreateLead}>
-          Enviar Lead
-        </button>
-      </div>
+      <select value={origem} onChange={(e) => setOrigem(e.target.value)}>
+        <option value="site">Site</option>
+        <option value="instagram">Instagram</option>
+        <option value="whatsapp">WhatsApp</option>
+      </select>
 
-      {/* LISTA DE LEADS */}
-      <div style={{ marginTop: 40 }}>
-        <h2>Leads</h2>
+      <button onClick={handleCreateLead}>Enviar</button>
 
-        {leads.map((lead) => (
-          <div
-            key={lead.id}
-            style={{
-              padding: 10,
-              border: "1px solid #ddd",
-              marginBottom: 10,
-            }}
-          >
-            <p><b>{lead.nome}</b></p>
-            <p>{lead.telefone}</p>
-            <p>{lead.email}</p>
-            <p>Status: {lead.status}</p>
-          </div>
-        ))}
-      </div>
+      <hr />
+
+      <h2>Leads</h2>
+
+      {leads.map((lead, i) => (
+        <div key={i}>
+          {lead.nome} - {lead.telefone} - {lead.status}
+        </div>
+      ))}
     </div>
   );
 }
