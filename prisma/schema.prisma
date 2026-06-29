@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  connection = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 model Lead {
@@ -12,11 +12,9 @@ model Lead {
   name      String
   phone     String?
   email     String?
-
   source    String   @default("meta")
   status    String   @default("NEW")
   score     Int      @default(0)
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -29,6 +27,5 @@ model Property {
   price        Float?
   area         Float?
   description  String?
-
   createdAt    DateTime @default(now())
 }
