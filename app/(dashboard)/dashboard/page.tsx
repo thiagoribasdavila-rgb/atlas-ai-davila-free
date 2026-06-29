@@ -34,7 +34,7 @@ export default function Dashboard() {
     checkUser();
   }, []);
 
-  // 📥 BUSCAR LEADS
+  // 📥 LOAD LEADS
   async function fetchLeads() {
     const { data } = await supabase
       .from("leads")
@@ -48,42 +48,73 @@ export default function Dashboard() {
     fetchLeads();
   }, []);
 
-  // ➕ CRIAR LEAD
+  // 🚀 PASSO 3 — AUTOPILOT COMPLETO
   async function handleCreateLead() {
     if (!user) return;
 
-    await supabase.from("leads").insert([
-      {
-        nome,
-        telefone,
-        email,
-        origem,
-        status: "novo",
-        user_id: user.id,
-        score: 0,
-      },
-    ]);
+    // 1️⃣ cria lead
+    const { data, error } = await supabase
+      .from("leads")
+      .insert([
+        {
+          nome,
+          telefone,
+          email,
+          origem,
+          status: "novo",
+          user_id: user.id,
+          score: 0,
+        },
+      ])
+      .select()
+      .single();
 
+    if (error) return;
+
+    // 2️⃣ IA calcula score
+    const score = await scoreLeadAI(data);
+
+    // 3️⃣ define status automático
+    let status = "novo";
+
+    if (score >= 70) status = "proposta";
+    else if (score >= 30) status = "contato";
+    else status = "novo";
+
+    // 4️⃣ atualiza lead
+    await supabase
+      .from("leads")
+      .update({
+        score,
+        status,
+      })
+      .eq("id", data.id);
+
+    // 5️⃣ WHATSAPP AUTOMÁTICO
+    const mensagem = `
+🏡 Novo Lead Imobiliário
+
+Nome: ${nome}
+Telefone: ${telefone}
+Origem: ${origem}
+Score IA: ${score}
+Status: ${status}
+`;
+
+    window.open(
+      ⁠ https://wa.me/5511999999999?text=${encodeURIComponent(mensagem)} ⁠
+    );
+
+    // 6️⃣ limpa form
     setNome("");
     setTelefone("");
     setEmail("");
 
+    // 7️⃣ atualiza dashboard
     fetchLeads();
   }
 
-  // 🤖 IA SCORE (PASSO 2 PRINCIPAL)
-  async function handleScoreLead(lead: any) {
-    const score = await scoreLeadAI(lead);
-
-    await supabase
-      .from("leads")
-      .update({ score })
-      .eq("id", lead.id);
-
-    fetchLeads();
-  }
-
-  // 🔁 MUDAR STATUS
+  // 🔁 UPDATE STATUS MANUAL
   async function updateStatus(id: string, status: string) {
     await supabase
       .from("leads")
@@ -93,16 +124,9 @@ export default function Dashboard() {
     fetchLeads();
   }
 
-  // 📊 SCORE COLOR
-  function getColor(score: number) {
-    if (score >= 70) return "green";
-    if (score >= 30) return "orange";
-    return "red";
-  }
-
   return (
-    <div style={{ padding: 20 }}>
-      <h1>🤖 CRM D'Avila - IA Dashboard</h1>
+    <div style={{ padding: 20, fontFamily: "Arial" }}>
+      <h1>🚀 CRM D’Avila AUTOPILOT</h1>
 
       {/* FORM */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
@@ -162,25 +186,18 @@ export default function Dashboard() {
                     borderRadius: 8,
                   }}
                 >
-                  <p><b>{lead.nome}</b></p>
+                  <b>{lead.nome}</b>
                   <p>{lead.telefone}</p>
 
                   {/* SCORE IA */}
                   <p>
                     Score:{" "}
-                    <b style={{ color: getColor(lead.score || 0) }}>
+                    <b>
                       {lead.score || 0}
                     </b>
                   </p>
 
-                  {/* BOTÃO IA */}
-                  <button
-                    onClick={() => handleScoreLead(lead)}
-                  >
-                    🤖 Calcular IA
-                  </button>
-
-                  {/* STATUS */}
+                  {/* STATUS MANUAL */}
                   <select
                     value={lead.status}
                     onChange={(e) =>
