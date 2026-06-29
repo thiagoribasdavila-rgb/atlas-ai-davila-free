@@ -1,28 +1,51 @@
 import { supabase } from "@/lib/supabase";
 
-export async function createLead({
-  nome,
-  telefone,
-  email,
-  origem = "site",
-}: any) {
-  const user = await supabase.auth.getUser();
-
+export async function getLeads(userId: string) {
   const { data, error } = await supabase
     .from("leads")
-    .insert([
-      {
-        nome,
-        telefone,
-        email,
-        origem,
-        user_id: user.data.user?.id,
-      },
-    ])
-    .select();
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
 
   if (error) {
-    console.error(error);
+    console.error("getLeads error:", error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function createLead(lead: {
+  nome: string;
+  telefone?: string;
+  email?: string;
+  origem?: string;
+  user_id: string;
+}) {
+  const { data, error } = await supabase
+    .from("leads")
+    .insert([lead])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("createLead error:", error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function updateLeadStage(id: string, status: string) {
+  const { data, error } = await supabase
+    .from("leads")
+    .update({ status })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("updateLeadStage error:", error);
     return null;
   }
 
