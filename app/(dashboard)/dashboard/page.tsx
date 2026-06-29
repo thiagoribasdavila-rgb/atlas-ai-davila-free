@@ -15,15 +15,9 @@ export default function Dashboard() {
   const [email, setEmail] = useState("");
   const [origem, setOrigem] = useState("site");
 
-  const statusList = [
-    "novo",
-    "contato",
-    "qualificado",
-    "proposta",
-    "fechado",
-  ];
+  const statusList = ["novo", "contato", "qualificado", "proposta", "fechado"];
 
-  // 🔐 LOGIN CHECK
+  // 🔐 AUTH CHECK
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -39,14 +33,11 @@ export default function Dashboard() {
     checkUser();
   }, []);
 
-  // 📥 BUSCAR LEADS (FILTRADO POR CORRETOR)
+  // 📥 LOAD LEADS
   async function fetchLeads() {
-    const { data: userData } = await supabase.auth.getUser();
-
     const { data } = await supabase
       .from("leads")
       .select("*")
-      .eq("user_id", userData.user?.id)
       .order("id", { ascending: false });
 
     setLeads(data || []);
@@ -56,11 +47,65 @@ export default function Dashboard() {
     fetchLeads();
   }, []);
 
-  // 🧠 MULTI CORRETOR (ROUND ROBIN SIMPLES)
+  // ➕ CREATE LEAD
   async function handleCreateLead() {
     if (!user) return;
 
-    // pega todos leads para calcular distribuição
-    const { count } = await supabase
-      .from("leads")
-      .select("*", { count: "exact",
+    await supabase.from("leads").insert([
+      {
+        nome,
+        telefone,
+        email,
+        origem,
+        status: "novo",
+        user_id: user.id,
+      },
+    ]);
+
+    setNome("");
+    setTelefone("");
+    setEmail("");
+
+    fetchLeads();
+  }
+
+  // 🔁 UPDATE STATUS
+  async function updateStatus(id: string, status: string) {
+    await supabase.from("leads").update({ status }).eq("id", id);
+
+    fetchLeads();
+  }
+
+  // 📊 KPIs
+  const count = (status: string) =>
+    leads.filter((l) => l.status === status).length;
+
+  return (
+    <div style={{ padding: 20, fontFamily: "Arial" }}>
+      <h1>🏢 CRM D'Avila Dashboard</h1>
+
+      {/* KPI CARDS */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+        {statusList.map((s) => (
+          <div
+            key={s}
+            style={{
+              flex: 1,
+              padding: 15,
+              background: "#f4f4f4",
+              borderRadius: 10,
+              textAlign: "center",
+            }}
+          >
+            <h3>{s.toUpperCase()}</h3>
+            <h2>{count(s)}</h2>
+          </div>
+        ))}
+      </div>
+
+      {/* FORM */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+        <input
+          placeholder="Nome"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
