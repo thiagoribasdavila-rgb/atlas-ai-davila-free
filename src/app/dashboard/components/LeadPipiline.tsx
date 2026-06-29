@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getLeads, updateLeadStage } from "@/services/leadsService";
+import LeadModal from "./LeadModal";
 
 const STAGES = [
   { key: "novo", label: "🟡 Novo" },
@@ -13,6 +14,7 @@ const STAGES = [
 
 export default function LeadPipeline() {
   const [leads, setLeads] = useState<any[]>([]);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
 
   useEffect(() => {
     load();
@@ -30,6 +32,7 @@ export default function LeadPipeline() {
 
   return (
     <div style={{ display: "flex", gap: 16, padding: 20 }}>
+      
       {STAGES.map((stage) => (
         <div
           key={stage.key}
@@ -54,6 +57,7 @@ export default function LeadPipeline() {
               <div
                 key={lead.id}
                 draggable
+                onClick={() => setSelectedLead(lead)}
                 onDragStart={(e) =>
                   e.dataTransfer.setData("leadId", lead.id)
                 }
@@ -62,7 +66,8 @@ export default function LeadPipeline() {
                   padding: 10,
                   marginBottom: 8,
                   borderRadius: 6,
-                  cursor: "grab",
+                  cursor: "pointer",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
                 }}
               >
                 <strong>{lead.nome}</strong>
@@ -72,6 +77,13 @@ export default function LeadPipeline() {
             ))}
         </div>
       ))}
+
+      {/* MODAL */}
+      <LeadModal
+        lead={selectedLead}
+        onClose={() => setSelectedLead(null)}
+        onUpdate={load}
+      />
     </div>
   );
 }
