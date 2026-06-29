@@ -1,16 +1,6 @@
-import { supabase } from "./supabase";
+import { createClient } from "@supabase/supabase-js";
 
-export async function getUser() {
-  const { data, error } = await supabase.auth.getUser();
-
-  if (error) {
-    console.error(error);
-    return null;
-  }
-
-  return data.user;
-}
-
-export async function logout() {
-  await supabase.auth.signOut();
-}
+export const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
