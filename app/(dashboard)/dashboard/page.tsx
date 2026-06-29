@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { classifyLeadAI } from "@/lib/classifyLeadAI";
 
 type Lead = {
   id: string;
@@ -45,12 +44,17 @@ export default function Dashboard() {
   }, [router]);
 
   // =========================
-  // FETCH LEADS
+  // FETCH LEADS (FILTRADO POR CORRETOR)
   // =========================
   async function fetchLeads() {
+    const { data: userData } = await supabase.auth.getUser();
+
+    const userId = userData?.user?.id;
+
     const { data } = await supabase
       .from("leads")
       .select("*")
+      .eq("user_id", userId) // 🔥 cada corretor vê só os dele
       .order("id", { ascending: false });
 
     setLeads(data || []);
@@ -62,21 +66,16 @@ export default function Dashboard() {
   }, []);
 
   // =========================
-  // MULTI CORRETORES (ROUND ROBIN)
-  // =========================
-  async function getCorretores() {
-    const { data } = await supabase.auth.admin.listUsers();
-
-    return data?.users || [];
-  }
-
-  // =========================
-  // CREATE LEAD (COM IA + DISTRIBUIÇÃO)
+  // CREATE LEAD
   // =========================
   async function handleCreateLead() {
-    const corretores = await getCorretores();
+    const { data: users } = await supabase.auth.admin.listUsers();
+
+    const corretores = users?.users || [];
 
     const index = Math.floor(Math.random() * corretores.length);
+
+    const assignedUser = corretores[index];
 
     await supabase.from("leads").insert([
       {
@@ -85,7 +84,7 @@ export default function Dashboard() {
         email,
         origem,
         status: "novo",
-        user_id: corretores[index]?.id,
+        user_id: assignedUser?.id,
         assigned_index: index,
       },
     ]);
@@ -98,7 +97,7 @@ export default function Dashboard() {
   }
 
   // =========================
-  // MOVE KANBAN
+  // MOVE LEAD (KANBAN)
   // =========================
   async function moveLead(id: string, status: string) {
     await supabase
@@ -110,31 +109,14 @@ export default function Dashboard() {
   }
 
   // =========================
-  // IA CLASSIFICAÇÃO (OPCIONAL)
-  // =========================
-  async function runAI(lead: Lead) {
-    const novoStatus = await classifyLeadAI(lead);
-
-    if (novoStatus) {
-      await supabase
-        .from("leads")
-        .update({ status: novoStatus })
-        .eq("id", lead.id);
-
-      fetchLeads();
-    }
-  }
-
-  // =========================
-  // RENDER
+  // UI
   // =========================
   return (
     <div style={{ padding: 20 }}>
       <h1>CRM D’Avila</h1>
-
       <p>Sistema online funcionando ✔</p>
 
-      {/* ================= FORM ================= */}
+      {/* FORM */}
       <div style={{ marginTop: 20 }}>
         <input
           placeholder="Nome"
@@ -155,18 +137,12 @@ export default function Dashboard() {
         />
 
         <button onClick={handleCreateLead}>
-          Enviar
+          Criar Lead
         </button>
       </div>
 
-      {/* ================= KANBAN ================= */}
-      <div
-        style={{
-          display: "flex",
-          gap: 20,
-          marginTop: 40,
-        }}
-      >
+      {/* KANBAN */}
+      <div style={{ display: "flex", gap: 20, marginTop: 40 }}>
         {colunas.map((coluna) => (
           <div
             key={coluna}
@@ -194,7 +170,6 @@ export default function Dashboard() {
                   <p><b>{lead.nome}</b></p>
                   <p>{lead.telefone}</p>
 
-                  {/* MOVE LEAD */}
                   <select
                     value={lead.status}
                     onChange={(e) =>
@@ -207,14 +182,6 @@ export default function Dashboard() {
                       </option>
                     ))}
                   </select>
-
-                  {/* IA BUTTON */}
-                  <button
-                    onClick={() => runAI(lead)}
-                    style={{ marginTop: 5 }}
-                  >
-                    IA classificar
-                  </button>
                 </div>
               ))}
           </div>
