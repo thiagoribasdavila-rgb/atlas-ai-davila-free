@@ -4,16 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
-    "start": "next start",
-    "postinstall": " "
+    "build": "next build",
+    "start": "next start"
   },
   "dependencies": {
     "next": "14.2.5",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "@supabase/supabase-js": "2.45.0",
-    "@prisma/client": "latest"
+    "@supabase/supabase-js": "latest"
   },
   "devDependencies": {
     "typescript": "5.5.3",
@@ -21,7 +19,6 @@
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
     "eslint": "8.57.0",
-    "eslint-config-next": "14.2.5",
-    "prisma": "latest"
+    "eslint-config-next": "14.2.5"
   }
 }
