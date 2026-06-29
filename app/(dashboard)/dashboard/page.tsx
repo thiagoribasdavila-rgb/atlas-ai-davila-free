@@ -7,11 +7,13 @@ import { useRouter } from "next/navigation";
 export default function Dashboard() {
   const router = useRouter();
 
+  // FORM
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [origem, setOrigem] = useState("site");
 
+  // LEADS
   const [leads, setLeads] = useState<any[]>([]);
 
   // 🔐 LOGIN CHECK
@@ -23,7 +25,7 @@ export default function Dashboard() {
     checkUser();
   }, []);
 
-  // 📥 BUSCAR LEADS (MULTI-CORRETOR)
+  // 📥 BUSCAR LEADS (MULTI CORRETOR)
   async function fetchLeads() {
     const { data: userData } = await supabase.auth.getUser();
 
@@ -39,7 +41,7 @@ export default function Dashboard() {
     fetchLeads();
   }, []);
 
-  // ➕ CRIAR LEAD (COM DONO)
+  // ➕ CRIAR LEAD (COM USUÁRIO)
   async function handleCreateLead() {
     const { data: userData } = await supabase.auth.getUser();
 
@@ -61,12 +63,22 @@ export default function Dashboard() {
     fetchLeads();
   }
 
+  // 🔁 MUDAR STATUS (KANBAN SIMPLES)
+  async function updateStatus(id: string, status: string) {
+    await supabase
+      .from("leads")
+      .update({ status })
+      .eq("id", id);
+
+    fetchLeads();
+  }
+
   return (
     <div style={{ padding: 20 }}>
       <h1>CRM D'Avila</h1>
 
-      {/* FORM */}
-      <div style={{ display: "flex", gap: 10 }}>
+      {/* FORM LEAD */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <input
           placeholder="Nome"
           value={nome}
@@ -94,23 +106,56 @@ export default function Dashboard() {
         <button onClick={handleCreateLead}>Criar Lead</button>
       </div>
 
-      {/* LISTA */}
-      <div style={{ marginTop: 20 }}>
-        {leads.map((lead) => (
-          <div
-            key={lead.id}
-            style={{
-              padding: 10,
-              marginBottom: 10,
-              border: "1px solid #ddd",
-            }}
-          >
-            <strong>{lead.nome}</strong>
-            <p>{lead.telefone}</p>
-            <p>{lead.email}</p>
-            <small>Status: {lead.status}</small>
-          </div>
-        ))}
+      {/* KANBAN SIMPLES */}
+      <div style={{ display: "flex", gap: 20, marginTop: 30 }}>
+        {["novo", "contato", "qualificado", "proposta", "fechado"].map(
+          (status) => (
+            <div
+              key={status}
+              style={{
+                flex: 1,
+                background: "#f5f5f5",
+                padding: 10,
+                borderRadius: 10,
+                minHeight: 300,
+              }}
+            >
+              <h3>{status.toUpperCase()}</h3>
+
+              {leads
+                .filter((l) => l.status === status)
+                .map((lead) => (
+                  <div
+                    key={lead.id}
+                    style={{
+                      background: "#fff",
+                      padding: 10,
+                      marginBottom: 10,
+                      borderRadius: 8,
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    <strong>{lead.nome}</strong>
+                    <p>{lead.telefone}</p>
+                    <p style={{ fontSize: 12 }}>{lead.email}</p>
+
+                    <select
+                      value={lead.status}
+                      onChange={(e) =>
+                        updateStatus(lead.id, e.target.value)
+                      }
+                    >
+                      <option value="novo">Novo</option>
+                      <option value="contato">Contato</option>
+                      <option value="qualificado">Qualificado</option>
+                      <option value="proposta">Proposta</option>
+                      <option value="fechado">Fechado</option>
+                    </select>
+                  </div>
+                ))}
+            </div>
+          )
+        )}
       </div>
     </div>
   );
