@@ -1,16 +1,21 @@
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 import LeadsBoard from "./components/LeadsBoard";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const supabase = createServerComponentClient({ cookies });
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return <div>Você precisa estar logado</div>;
+  }
+
   return (
     <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700 }}>
-        CRM D’Avila
-      </h1>
-
-      <p style={{ marginBottom: 20, color: "#666" }}>
-        Sistema online funcionando ✔
-      </p>
-
+      <h1>CRM D’Avila</h1>
       <LeadsBoard />
     </div>
   );
