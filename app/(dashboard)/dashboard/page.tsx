@@ -3,46 +3,38 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { scoreLeadAI } from "@/lib/scoreLeadAI";
 
-type Lead = {
-  id: string;
-  nome: string;
-  telefone: string;
-  email: string;
-  status: string;
-  user_id: string;
-};
-
-type User = {
-  id: string;
-  email: string;
-};
-
-export default function AdminPage() {
+export default function Dashboard() {
   const router = useRouter();
 
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [leads, setLeads] = useState<any[]>([]);
 
-  // =========================
-  // CHECK ADMIN LOGIN
-  // =========================
+  const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [email, setEmail] = useState("");
+  const [origem, setOrigem] = useState("site");
+
+  const statusList = ["novo", "contato", "proposta", "fechado"];
+
+  // 🔐 LOGIN CHECK
   useEffect(() => {
-    const check = async () => {
+    const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
 
       if (!data.user) {
         router.push("/login");
+        return;
       }
+
+      setUser(data.user);
     };
 
-    check();
-  }, [router]);
+    checkUser();
+  }, []);
 
-  // =========================
-  // FETCH ALL LEADS
-  // =========================
+  // 📥 BUSCAR LEADS
   async function fetchLeads() {
     const { data } = await supabase
       .from("leads")
@@ -52,97 +44,160 @@ export default function AdminPage() {
     setLeads(data || []);
   }
 
-  // =========================
-  // FETCH USERS (CORRETORES)
-  // =========================
-  async function fetchUsers() {
-    const { data } = await supabase.auth.admin.listUsers();
-
-    setUsers(data?.users || []);
-  }
-
   useEffect(() => {
     fetchLeads();
-    fetchUsers();
-    setLoading(false);
   }, []);
 
-  // =========================
-  // KPIs
-  // =========================
-  const totalLeads = leads.length;
+  // ➕ CRIAR LEAD
+  async function handleCreateLead() {
+    if (!user) return;
 
-  const porStatus = {
-    novo: leads.filter((l) => l.status === "novo").length,
-    contato: leads.filter((l) => l.status === "contato").length,
-    proposta: leads.filter((l) => l.status === "proposta").length,
-    fechado: leads.filter((l) => l.status === "fechado").length,
-  };
+    await supabase.from("leads").insert([
+      {
+        nome,
+        telefone,
+        email,
+        origem,
+        status: "novo",
+        user_id: user.id,
+        score: 0,
+      },
+    ]);
 
-  // =========================
-  // RANKING CORRETORES
-  // =========================
-  function getRanking(userId: string) {
-    return leads.filter((l) => l.user_id === userId).length;
+    setNome("");
+    setTelefone("");
+    setEmail("");
+
+    fetchLeads();
+  }
+
+  // 🤖 IA SCORE (PASSO 2 PRINCIPAL)
+  async function handleScoreLead(lead: any) {
+    const score = await scoreLeadAI(lead);
+
+    await supabase
+      .from("leads")
+      .update({ score })
+      .eq("id", lead.id);
+
+    fetchLeads();
+  }
+
+  // 🔁 MUDAR STATUS
+  async function updateStatus(id: string, status: string) {
+    await supabase
+      .from("leads")
+      .update({ status })
+      .eq("id", id);
+
+    fetchLeads();
+  }
+
+  // 📊 SCORE COLOR
+  function getColor(score: number) {
+    if (score >= 70) return "green";
+    if (score >= 30) return "orange";
+    return "red";
   }
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>ADMIN CRM D’AVILA</h1>
+      <h1>🤖 CRM D'Avila - IA Dashboard</h1>
 
-      {/* ================= KPI ================= */}
-      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
-        <div>Total Leads: {totalLeads}</div>
-        <div>Novo: {porStatus.novo}</div>
-        <div>Contato: {porStatus.contato}</div>
-        <div>Proposta: {porStatus.proposta}</div>
-        <div>Fechado: {porStatus.fechado}</div>
+      {/* FORM */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+        <input
+          placeholder="Nome"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+        />
+
+        <input
+          placeholder="Telefone"
+          value={telefone}
+          onChange={(e) => setTelefone(e.target.value)}
+        />
+
+        <input
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <select value={origem} onChange={(e) => setOrigem(e.target.value)}>
+          <option value="site">Site</option>
+          <option value="instagram">Instagram</option>
+          <option value="whatsapp">WhatsApp</option>
+        </select>
+
+        <button onClick={handleCreateLead}>
+          ➕ Criar Lead
+        </button>
       </div>
 
-      {/* ================= RANKING ================= */}
-      <h2 style={{ marginTop: 40 }}>Ranking Corretores</h2>
-
-      <div>
-        {users.map((u) => (
+      {/* KANBAN */}
+      <div style={{ display: "flex", gap: 10 }}>
+        {statusList.map((status) => (
           <div
-            key={u.id}
+            key={status}
             style={{
+              flex: 1,
+              background: "#f4f4f4",
               padding: 10,
-              marginBottom: 10,
-              background: "#f5f5f5",
-              borderRadius: 8,
+              borderRadius: 10,
+              minHeight: 500,
             }}
           >
-            <p><b>{u.email}</b></p>
-            <p>Leads: {getRanking(u.id)}</p>
+            <h3>{status.toUpperCase()}</h3>
+
+            {leads
+              .filter((lead) => lead.status === status)
+              .map((lead) => (
+                <div
+                  key={lead.id}
+                  style={{
+                    background: "#fff",
+                    padding: 10,
+                    marginBottom: 10,
+                    borderRadius: 8,
+                  }}
+                >
+                  <p><b>{lead.nome}</b></p>
+                  <p>{lead.telefone}</p>
+
+                  {/* SCORE IA */}
+                  <p>
+                    Score:{" "}
+                    <b style={{ color: getColor(lead.score || 0) }}>
+                      {lead.score || 0}
+                    </b>
+                  </p>
+
+                  {/* BOTÃO IA */}
+                  <button
+                    onClick={() => handleScoreLead(lead)}
+                  >
+                    🤖 Calcular IA
+                  </button>
+
+                  {/* STATUS */}
+                  <select
+                    value={lead.status}
+                    onChange={(e) =>
+                      updateStatus(lead.id, e.target.value)
+                    }
+                  >
+                    {statusList.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
           </div>
         ))}
       </div>
-
-      {/* ================= LEADS TABLE ================= */}
-      <h2 style={{ marginTop: 40 }}>Todos os Leads</h2>
-
-      <table width="100%" border={1}>
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Telefone</th>
-            <th>Status</th>
-            <th>Corretor</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {leads.map((lead) => (
-            <tr key={lead.id}>
-              <td>{lead.nome}</td>
-              <td>{lead.telefone}</td>
-              <td>{lead.status}</td>
-              <td>{lead.user_id}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
