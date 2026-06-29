@@ -1,60 +1,60 @@
 import { supabase } from "@/lib/supabase";
 
-export type LeadStatus = "novo" | "contato" | "qualificado" | "fechado";
+export type LeadStatus =
+  | "novo"
+  | "contato"
+  | "qualificado"
+  | "fechado";
 
-export interface Lead {
-  id: string;
-  nome: string;
-  telefone?: string;
-  email?: string;
-  origem?: string;
-  status: LeadStatus;
-  created_at: string;
-}
+//
+// 📥 GET LEADS (POR USUÁRIO)
+//
+export async function getLeads() {
+  const user = await supabase.auth.getUser();
 
-/* =========================
-   LISTAR LEADS
-========================= */
-export async function getLeads(): Promise<Lead[]> {
   const { data, error } = await supabase
     .from("leads")
     .select("*")
+    .eq("user_id", user.data.user?.id)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data || [];
+  return data;
 }
 
-/* =========================
-   CRIAR LEAD
-========================= */
-export async function createLead(payload: {
+//
+// ➕ CREATE LEAD (COM USER_ID)
+//
+export async function createLead(data: {
   nome: string;
   telefone?: string;
   email?: string;
   origem?: string;
 }) {
-  const { data, error } = await supabase
+  const user = await supabase.auth.getUser();
+
+  const { data: lead, error } = await supabase
     .from("leads")
     .insert([
       {
-        nome: payload.nome,
-        telefone: payload.telefone,
-        email: payload.email,
-        origem: payload.origem || "site",
+        nome: data.nome,
+        telefone: data.telefone,
+        email: data.email,
+        origem: data.origem || "site",
         status: "novo",
+        user_id: user.data.user?.id,
       },
     ])
     .select()
     .single();
 
   if (error) throw new Error(error.message);
-  return data;
+  return lead;
 }
 
-/* =========================
-   ATUALIZAR STATUS
-========================= */
+//
+// 🔄 UPDATE STATUS
+//
 export async function updateLeadStatus(
   id: string,
   status: LeadStatus
@@ -68,17 +68,4 @@ export async function updateLeadStatus(
 
   if (error) throw new Error(error.message);
   return data;
-}
-
-/* =========================
-   DELETAR LEAD
-========================= */
-export async function deleteLead(id: string) {
-  const { error } = await supabase
-    .from("leads")
-    .delete()
-    .eq("id", id);
-
-  if (error) throw new Error(error.message);
-  return true;
 }
