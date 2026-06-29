@@ -4,32 +4,40 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
+import {
+  DndContext,
+  closestCorners,
+  useSensor,
+  useSensors,
+  PointerSensor,
+} from "@dnd-kit/core";
+
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+
 export default function Dashboard() {
   const router = useRouter();
 
   const [leads, setLeads] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
 
+  const statusList = ["novo", "contato", "qualificado", "proposta", "fechado"];
+
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [origem, setOrigem] = useState("site");
 
-  const statusList = ["novo", "contato", "qualificado", "proposta", "fechado"];
-
-  // 🔐 LOGIN
+  // 🔐 USER
   useEffect(() => {
     const check = async () => {
       const { data } = await supabase.auth.getUser();
-
-      if (!data.user) {
-        router.push("/login");
-        return;
-      }
-
+      if (!data.user) router.push("/login");
       setUser(data.user);
     };
-
     check();
   }, []);
 
@@ -47,7 +55,7 @@ export default function Dashboard() {
     fetchLeads();
   }, []);
 
-  // ➕ CRIAR LEAD
+  // ➕ CREATE
   async function handleCreateLead() {
     if (!user) return;
 
@@ -69,57 +77,43 @@ export default function Dashboard() {
     fetchLeads();
   }
 
-  // 🔁 MUDAR STATUS
-  async function updateStatus(id: string, status: string) {
-    await supabase.from("leads").update({ status }).eq("id", id);
+  // 🔥 DRAG SENSOR
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    })
+  );
+
+  // 🔁 DROP
+  async function handleDragEnd(event: any) {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const leadId = active.id;
+    const newStatus = over.id;
+
+    await supabase
+      .from("leads")
+      .update({ status: newStatus })
+      .eq("id", leadId);
 
     fetchLeads();
   }
 
-  // 📊 KPIs
-  const countByStatus = (status: string) =>
-    leads.filter((l) => l.status === status).length;
+  // 📊 FILTER
+  const getLeadsByStatus = (status: string) =>
+    leads.filter((l) => l.status === status);
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial" }}>
-      {/* HEADER */}
-      <h1>📊 CRM D'Avila Painel</h1>
-
-      {/* KPIs */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        {statusList.map((s) => (
-          <div
-            key={s}
-            style={{
-              padding: 10,
-              background: "#f2f2f2",
-              borderRadius: 10,
-              minWidth: 120,
-            }}
-          >
-            <strong>{s.toUpperCase()}</strong>
-            <p>{countByStatus(s)}</p>
-          </div>
-        ))}
-      </div>
+      <h1>📊 CRM D'Avila - Kanban Drag & Drop</h1>
 
       {/* FORM */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <input
-          placeholder="Nome"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-        />
-        <input
-          placeholder="Telefone"
-          value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
-        />
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+      <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+        <input placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} />
+        <input placeholder="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
 
         <select value={origem} onChange={(e) => setOrigem(e.target.value)}>
           <option value="site">Site</option>
@@ -131,54 +125,49 @@ export default function Dashboard() {
       </div>
 
       {/* KANBAN */}
-      <div style={{ display: "flex", gap: 15, marginTop: 30 }}>
-        {statusList.map((status) => (
-          <div
-            key={status}
-            style={{
-              flex: 1,
-              background: "#fafafa",
-              padding: 10,
-              borderRadius: 12,
-              minHeight: 400,
-            }}
-          >
-            <h3>{status.toUpperCase()}</h3>
+      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+          {statusList.map((status) => (
+            <div
+              key={status}
+              id={status}
+              style={{
+                flex: 1,
+                minHeight: 500,
+                background: "#f5f5f5",
+                padding: 10,
+                borderRadius: 10,
+              }}
+            >
+              <h3>{status.toUpperCase()}</h3>
 
-            {leads
-              .filter((l) => l.status === status)
-              .map((lead) => (
-                <div
-                  key={lead.id}
-                  style={{
-                    background: "#fff",
-                    padding: 10,
-                    marginBottom: 10,
-                    borderRadius: 8,
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  <strong>{lead.nome}</strong>
-                  <p>{lead.telefone}</p>
-                  <p style={{ fontSize: 12 }}>{lead.email}</p>
-
-                  <select
-                    value={lead.status}
-                    onChange={(e) =>
-                      updateStatus(lead.id, e.target.value)
-                    }
+              <SortableContext
+                items={getLeadsByStatus(status).map((l) => l.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {getLeadsByStatus(status).map((lead) => (
+                  <div
+                    key={lead.id}
+                    id={lead.id}
+                    style={{
+                      background: "white",
+                      padding: 10,
+                      marginBottom: 10,
+                      borderRadius: 8,
+                      cursor: "grab",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                    }}
                   >
-                    {statusList.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-          </div>
-        ))}
-      </div>
+                    <strong>{lead.nome}</strong>
+                    <p>{lead.telefone}</p>
+                    <small>{lead.email}</small>
+                  </div>
+                ))}
+              </SortableContext>
+            </div>
+          ))}
+        </div>
+      </DndContext>
     </div>
   );
 }
