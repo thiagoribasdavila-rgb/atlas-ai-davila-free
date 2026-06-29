@@ -4,25 +4,17 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
-const colunas = [
-  "novo",
-  "contato",
-  "qualificado",
-  "proposta",
-  "fechado",
-];
-
 export default function Dashboard() {
   const router = useRouter();
-
-  const [leads, setLeads] = useState<any[]>([]);
 
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [origem, setOrigem] = useState("site");
 
-  // 🔐 login check
+  const [leads, setLeads] = useState<any[]>([]);
+
+  // 🔐 LOGIN CHECK
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -31,9 +23,15 @@ export default function Dashboard() {
     checkUser();
   }, []);
 
-  // 📥 buscar leads
+  // 📥 BUSCAR LEADS (MULTI-CORRETOR)
   async function fetchLeads() {
-    const { data } = await supabase.from("leads").select("*");
+    const { data: userData } = await supabase.auth.getUser();
+
+    const { data } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("user_id", userData.user?.id);
+
     setLeads(data || []);
   }
 
@@ -41,8 +39,10 @@ export default function Dashboard() {
     fetchLeads();
   }, []);
 
-  // ➕ criar lead
+  // ➕ CRIAR LEAD (COM DONO)
   async function handleCreateLead() {
+    const { data: userData } = await supabase.auth.getUser();
+
     await supabase.from("leads").insert([
       {
         nome,
@@ -50,6 +50,7 @@ export default function Dashboard() {
         email,
         origem,
         status: "novo",
+        user_id: userData.user?.id,
       },
     ]);
 
@@ -60,25 +61,29 @@ export default function Dashboard() {
     fetchLeads();
   }
 
-  // 🔁 mover card
-  async function moveLead(id: string, status: string) {
-    await supabase
-      .from("leads")
-      .update({ status })
-      .eq("id", id);
-
-    fetchLeads();
-  }
-
   return (
     <div style={{ padding: 20 }}>
-      <h1>CRM D'Avila — Kanban</h1>
+      <h1>CRM D'Avila</h1>
 
       {/* FORM */}
       <div style={{ display: "flex", gap: 10 }}>
-        <input placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} />
-        <input placeholder="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
-        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input
+          placeholder="Nome"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+        />
+
+        <input
+          placeholder="Telefone"
+          value={telefone}
+          onChange={(e) => setTelefone(e.target.value)}
+        />
+
+        <input
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
         <select value={origem} onChange={(e) => setOrigem(e.target.value)}>
           <option value="site">Site</option>
@@ -89,50 +94,21 @@ export default function Dashboard() {
         <button onClick={handleCreateLead}>Criar Lead</button>
       </div>
 
-      <hr />
-
-      {/* KANBAN */}
-      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
-        {colunas.map((coluna) => (
+      {/* LISTA */}
+      <div style={{ marginTop: 20 }}>
+        {leads.map((lead) => (
           <div
-            key={coluna}
+            key={lead.id}
             style={{
-              flex: 1,
-              background: "#f4f4f4",
               padding: 10,
-              borderRadius: 10,
+              marginBottom: 10,
+              border: "1px solid #ddd",
             }}
           >
-            <h3>{coluna.toUpperCase()}</h3>
-
-            {leads
-              .filter((l) => l.status === coluna)
-              .map((lead) => (
-                <div
-                  key={lead.id}
-                  style={{
-                    background: "white",
-                    padding: 10,
-                    marginBottom: 10,
-                    borderRadius: 8,
-                  }}
-                >
-                  <strong>{lead.nome}</strong>
-                  <p>{lead.telefone}</p>
-
-                  {/* mover */}
-                  <select
-                    value={lead.status}
-                    onChange={(e) => moveLead(lead.id, e.target.value)}
-                  >
-                    {colunas.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
+            <strong>{lead.nome}</strong>
+            <p>{lead.telefone}</p>
+            <p>{lead.email}</p>
+            <small>Status: {lead.status}</small>
           </div>
         ))}
       </div>
