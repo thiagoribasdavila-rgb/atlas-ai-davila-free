@@ -9,30 +9,27 @@ type Lead = {
   nome: string;
   telefone: string;
   email: string;
-  origem: string;
   status: string;
   user_id: string;
-  assigned_index: number;
 };
 
-const colunas = ["novo", "contato", "proposta", "fechado"];
+type User = {
+  id: string;
+  email: string;
+};
 
-export default function Dashboard() {
+export default function AdminPage() {
   const router = useRouter();
 
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [email, setEmail] = useState("");
-  const [origem, setOrigem] = useState("site");
-
   // =========================
-  // LOGIN CHECK
+  // CHECK ADMIN LOGIN
   // =========================
   useEffect(() => {
-    const checkUser = async () => {
+    const check = async () => {
       const { data } = await supabase.auth.getUser();
 
       if (!data.user) {
@@ -40,153 +37,112 @@ export default function Dashboard() {
       }
     };
 
-    checkUser();
+    check();
   }, [router]);
 
   // =========================
-  // FETCH LEADS (FILTRADO POR CORRETOR)
+  // FETCH ALL LEADS
   // =========================
   async function fetchLeads() {
-    const { data: userData } = await supabase.auth.getUser();
-
-    const userId = userData?.user?.id;
-
     const { data } = await supabase
       .from("leads")
       .select("*")
-      .eq("user_id", userId) // 🔥 cada corretor vê só os dele
       .order("id", { ascending: false });
 
     setLeads(data || []);
-    setLoading(false);
+  }
+
+  // =========================
+  // FETCH USERS (CORRETORES)
+  // =========================
+  async function fetchUsers() {
+    const { data } = await supabase.auth.admin.listUsers();
+
+    setUsers(data?.users || []);
   }
 
   useEffect(() => {
     fetchLeads();
+    fetchUsers();
+    setLoading(false);
   }, []);
 
   // =========================
-  // CREATE LEAD
+  // KPIs
   // =========================
-  async function handleCreateLead() {
-    const { data: users } = await supabase.auth.admin.listUsers();
+  const totalLeads = leads.length;
 
-    const corretores = users?.users || [];
+  const porStatus = {
+    novo: leads.filter((l) => l.status === "novo").length,
+    contato: leads.filter((l) => l.status === "contato").length,
+    proposta: leads.filter((l) => l.status === "proposta").length,
+    fechado: leads.filter((l) => l.status === "fechado").length,
+  };
 
-    const index = Math.floor(Math.random() * corretores.length);
-
-    const assignedUser = corretores[index];
-
-    await supabase.from("leads").insert([
-      {
-        nome,
-        telefone,
-        email,
-        origem,
-        status: "novo",
-        user_id: assignedUser?.id,
-        assigned_index: index,
-      },
-    ]);
-
-    setNome("");
-    setTelefone("");
-    setEmail("");
-
-    fetchLeads();
+  // =========================
+  // RANKING CORRETORES
+  // =========================
+  function getRanking(userId: string) {
+    return leads.filter((l) => l.user_id === userId).length;
   }
 
-  // =========================
-  // MOVE LEAD (KANBAN)
-  // =========================
-  async function moveLead(id: string, status: string) {
-    await supabase
-      .from("leads")
-      .update({ status })
-      .eq("id", id);
-
-    fetchLeads();
-  }
-
-  // =========================
-  // UI
-  // =========================
   return (
     <div style={{ padding: 20 }}>
-      <h1>CRM D’Avila</h1>
-      <p>Sistema online funcionando ✔</p>
+      <h1>ADMIN CRM D’AVILA</h1>
 
-      {/* FORM */}
-      <div style={{ marginTop: 20 }}>
-        <input
-          placeholder="Nome"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-        />
-
-        <input
-          placeholder="Telefone"
-          value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
-        />
-
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <button onClick={handleCreateLead}>
-          Criar Lead
-        </button>
+      {/* ================= KPI ================= */}
+      <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
+        <div>Total Leads: {totalLeads}</div>
+        <div>Novo: {porStatus.novo}</div>
+        <div>Contato: {porStatus.contato}</div>
+        <div>Proposta: {porStatus.proposta}</div>
+        <div>Fechado: {porStatus.fechado}</div>
       </div>
 
-      {/* KANBAN */}
-      <div style={{ display: "flex", gap: 20, marginTop: 40 }}>
-        {colunas.map((coluna) => (
+      {/* ================= RANKING ================= */}
+      <h2 style={{ marginTop: 40 }}>Ranking Corretores</h2>
+
+      <div>
+        {users.map((u) => (
           <div
-            key={coluna}
+            key={u.id}
             style={{
-              flex: 1,
-              background: "#f5f5f5",
               padding: 10,
-              borderRadius: 10,
+              marginBottom: 10,
+              background: "#f5f5f5",
+              borderRadius: 8,
             }}
           >
-            <h3>{coluna.toUpperCase()}</h3>
-
-            {leads
-              .filter((lead) => lead.status === coluna)
-              .map((lead) => (
-                <div
-                  key={lead.id}
-                  style={{
-                    background: "#fff",
-                    padding: 10,
-                    marginBottom: 10,
-                    borderRadius: 8,
-                  }}
-                >
-                  <p><b>{lead.nome}</b></p>
-                  <p>{lead.telefone}</p>
-
-                  <select
-                    value={lead.status}
-                    onChange={(e) =>
-                      moveLead(lead.id, e.target.value)
-                    }
-                  >
-                    {colunas.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
+            <p><b>{u.email}</b></p>
+            <p>Leads: {getRanking(u.id)}</p>
           </div>
         ))}
       </div>
+
+      {/* ================= LEADS TABLE ================= */}
+      <h2 style={{ marginTop: 40 }}>Todos os Leads</h2>
+
+      <table width="100%" border={1}>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Telefone</th>
+            <th>Status</th>
+            <th>Corretor</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {leads.map((lead) => (
+            <tr key={lead.id}>
+              <td>{lead.nome}</td>
+              <td>{lead.telefone}</td>
+              <td>{lead.status}</td>
+              <td>{lead.user_id}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
