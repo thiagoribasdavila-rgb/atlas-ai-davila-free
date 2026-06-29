@@ -8,13 +8,13 @@ export default function LeadModal({
   onClose,
   onUpdate,
 }: any) {
-  const [form, setForm] = useState(lead);
+  const [form, setForm] = useState<any>(null);
 
   useEffect(() => {
     setForm(lead);
   }, [lead]);
 
-  if (!lead) return null;
+  if (!lead || !form) return null;
 
   async function handleSave() {
     await updateLead(lead.id, form);
@@ -32,8 +32,9 @@ export default function LeadModal({
         bottom: 0,
         background: "rgba(0,0,0,0.6)",
         display: "flex",
-        justifyContent: "center",
         alignItems: "center",
+        justifyContent: "center",
+        zIndex: 9999,
       }}
     >
       <div
@@ -41,10 +42,10 @@ export default function LeadModal({
           background: "#fff",
           padding: 20,
           borderRadius: 10,
-          width: 400,
+          width: 420,
         }}
       >
-        <h2>Lead</h2>
+        <h2>👤 Lead</h2>
 
         <input
           value={form.nome || ""}
@@ -61,6 +62,15 @@ export default function LeadModal({
             setForm({ ...form, telefone: e.target.value })
           }
           placeholder="Telefone"
+          style={{ width: "100%", marginBottom: 10 }}
+        />
+
+        <input
+          value={form.email || ""}
+          onChange={(e) =>
+            setForm({ ...form, email: e.target.value })
+          }
+          placeholder="Email"
           style={{ width: "100%", marginBottom: 10 }}
         />
 
@@ -83,8 +93,8 @@ export default function LeadModal({
           onChange={(e) =>
             setForm({ ...form, observacoes: e.target.value })
           }
-          placeholder="Observações"
-          style={{ width: "100%", height: 100 }}
+          placeholder="Observações do lead..."
+          style={{ width: "100%", height: 120 }}
         />
 
         <div
