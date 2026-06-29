@@ -1,24 +1,10 @@
-import { supabase } from "@/lib/supabase";
+import LeadPipeline from "@/components/LeadPipeline";
 
-export default async function DashboardPage() {
-  const { data: leads } = await supabase
-    .from("leads")
-    .select("*")
-    .order("created_at", { ascending: false });
-
+export default function DashboardPage() {
   return (
-    <div style={{ padding: 24 }}>
-      <h1>CRM D'Avila</h1>
-
-      <h3>Total de leads: {leads?.length || 0}</h3>
-
-      <ul>
-        {leads?.map((lead: any) => (
-          <li key={lead.id}>
-            {lead.nome} - {lead.telefone} - {lead.status}
-          </li>
-        ))}
-      </ul>
+    <div>
+      <h1 style={{ padding: 20 }}>CRM D'Avila</h1>
+      <LeadPipeline />
     </div>
   );
 }
