@@ -1,24 +1,5 @@
 import { supabase } from "@/lib/supabase";
 
-export async function createLead({
-  nome,
-  telefone,
-  email,
-  origem = "site",
-}: any) {
-  const { data, error } = await supabase
-    .from("leads")
-    .insert([{ nome, telefone, email, origem }])
-    .select();
-
-  if (error) {
-    console.error("Erro createLead:", error);
-    return null;
-  }
-
-  return data;
-}
-
 export async function getLeads() {
   const { data, error } = await supabase
     .from("leads")
@@ -26,8 +7,23 @@ export async function getLeads() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Erro getLeads:", error);
+    console.error(error);
     return [];
+  }
+
+  return data;
+}
+
+export async function updateLeadStage(id: string, stage: string) {
+  const { data, error } = await supabase
+    .from("leads")
+    .update({ stage })
+    .eq("id", id)
+    .select();
+
+  if (error) {
+    console.error("Erro update stage:", error);
+    return null;
   }
 
   return data;
