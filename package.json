@@ -1,4 +1,3 @@
-cat > package.json << 'EOF'
 {
   "name": "atlas-ai-davila-free",
   "version": "1.0.0",
@@ -26,4 +25,3 @@ cat > package.json << 'EOF'
     "prisma": "latest"
   }
 }
-EOF
