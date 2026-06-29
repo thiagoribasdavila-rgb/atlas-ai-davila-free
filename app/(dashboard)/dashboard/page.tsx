@@ -17,9 +17,9 @@ export default function Dashboard() {
 
   const statusList = ["novo", "contato", "proposta", "fechado"];
 
-  // 🔐 LOGIN CHECK
+  // 🔐 LOGIN
   useEffect(() => {
-    const checkUser = async () => {
+    const check = async () => {
       const { data } = await supabase.auth.getUser();
 
       if (!data.user) {
@@ -30,10 +30,10 @@ export default function Dashboard() {
       setUser(data.user);
     };
 
-    checkUser();
+    check();
   }, []);
 
-  // 📥 LOAD LEADS
+  // 📥 LEADS
   async function fetchLeads() {
     const { data } = await supabase
       .from("leads")
@@ -47,27 +47,21 @@ export default function Dashboard() {
     fetchLeads();
   }, []);
 
-  // ➕ CREATE LEAD (AUTO)
+  // ➕ CRIAR LEAD
   async function handleCreateLead() {
     if (!user) return;
 
-    const { data } = await supabase
-      .from("leads")
-      .insert([
-        {
-          nome,
-          telefone,
-          email,
-          origem,
-          status: "novo",
-          user_id: user.id,
-          score: 0,
-        },
-      ])
-      .select()
-      .single();
-
-    if (!data) return;
+    await supabase.from("leads").insert([
+      {
+        nome,
+        telefone,
+        email,
+        origem,
+        status: "novo",
+        user_id: user.id,
+        score: 0,
+      },
+    ]);
 
     setNome("");
     setTelefone("");
@@ -76,7 +70,7 @@ export default function Dashboard() {
     fetchLeads();
   }
 
-  // 🔁 UPDATE STATUS
+  // 🔁 STATUS
   async function updateStatus(id: string, status: string) {
     await supabase
       .from("leads")
@@ -95,34 +89,22 @@ export default function Dashboard() {
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial" }}>
-      <h1>🏢 CRM D’Avila DASHBOARD</h1>
+      <h1>🏢 CRM DASHBOARD</h1>
 
-      {/* 📊 KPIs */}
+      {/* KPIs */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <div style={box}>Total: {total}</div>
-        <div style={box}>Novo: {novo}</div>
-        <div style={box}>Contato: {contato}</div>
-        <div style={box}>Proposta: {proposta}</div>
-        <div style={box}>Fechado: {fechado}</div>
+        <Card title="Total" value={total} />
+        <Card title="Novo" value={novo} />
+        <Card title="Contato" value={contato} />
+        <Card title="Proposta" value={proposta} />
+        <Card title="Fechado" value={fechado} />
       </div>
 
-      {/* ➕ FORM */}
+      {/* FORM */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-        <input
-          placeholder="Nome"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-        />
-        <input
-          placeholder="Telefone"
-          value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
-        />
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <input placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} />
+        <input placeholder="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
 
         <select value={origem} onChange={(e) => setOrigem(e.target.value)}>
           <option value="site">Site</option>
@@ -133,7 +115,7 @@ export default function Dashboard() {
         <button onClick={handleCreateLead}>➕ Criar Lead</button>
       </div>
 
-      {/* 📦 KANBAN */}
+      {/* KANBAN */}
       <div style={{ display: "flex", gap: 10 }}>
         {statusList.map((status) => (
           <div
@@ -163,9 +145,7 @@ export default function Dashboard() {
                   <b>{lead.nome}</b>
                   <p>{lead.telefone}</p>
 
-                  <p style={{ fontSize: 12 }}>
-                    Score: {lead.score || 0}
-                  </p>
+                  <small>Score: {lead.score || 0}</small>
 
                   <select
                     value={lead.status}
@@ -188,10 +168,20 @@ export default function Dashboard() {
   );
 }
 
-const box = {
-  flex: 1,
-  padding: 10,
-  background: "#eee",
-  borderRadius: 8,
-  textAlign: "center",
-};
+// 📦 CARD KPI
+function Card({ title, value }: any) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        background: "#eee",
+        padding: 10,
+        borderRadius: 8,
+        textAlign: "center",
+      }}
+    >
+      <h4>{title}</h4>
+      <h2>{value}</h2>
+    </div>
+  );
+}
